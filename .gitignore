@@ -1,0 +1,8 @@
+*.DS_Store
+.vscode/
+*.pyc
+/build/
+/devel/
+/src/rosbook_kobuki/
+/.catkin_workspace
+/src/CMakeLists.txt

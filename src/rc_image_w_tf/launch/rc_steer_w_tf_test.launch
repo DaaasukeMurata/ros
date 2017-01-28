@@ -1,0 +1,13 @@
+<launch>
+    <machine name="host" address="localhost" env-loader="/home/murata/work/ros/rosmaster_stick.sh" />
+    <!--<machine name="stick" address="stick-daisuke.local" env-loader="/home/ubuntu/work/ros/remote.sh" user="ubuntu" password="ubuntu" default="True" />-->
+
+    <node machine="host" pkg="rc_image_w_tf" type="rc_line_detect.py" name="rc_line_detect">
+      <param name="image" value="/usb_cam_node/image_raw" type="String"/>
+	    <param name="gui" value="false" type="bool"/>
+	    <param name="logmode" value="true" type="bool"/>
+    </node>
+
+    <node machine="host" pkg="rc_image_w_tf" type="tf_steer.py" name="image_to_steer">
+    </node>
+</launch>

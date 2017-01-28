@@ -19,9 +19,9 @@ from param_server import ParamServer
 class RcLineDetect():
 
     def __init__(self):
-        rospy.init_node('image_process')
         self.__cv_bridge = CvBridge()
-        self.__sub = rospy.Subscriber('image', Image, self.callback, queue_size=1)
+        image_node = rospy.get_param("~image", "/usb_cam_node/image_raw")
+        self.__sub = rospy.Subscriber(image_node, Image, self.callback, queue_size=1)
         self.__pub = rospy.Publisher('image_processed', Image, queue_size=1)
         ParamServer.add_cb_value_changed(self.redraw)
 
@@ -60,8 +60,11 @@ class RcLineDetect():
         rospy.spin()
 
 if __name__ == '__main__':
-    gui_mode = True
-    log_mode = False
+    rospy.init_node('rc_line_detect')
+    gui_mode = rospy.get_param("~gui", True)
+    log_mode = rospy.get_param("~logmode", False)
+    # gui_mode = True
+    # log_mode = False
     for arg in sys.argv:
         if (arg == '--disable-gui'):
             gui_mode = False
