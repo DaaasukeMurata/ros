@@ -16,7 +16,7 @@ import setting_gui
 from param_server import ParamServer
 
 
-class RosLineDetect():
+class RcLineDetect():
 
     def __init__(self):
         rospy.init_node('image_process')
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         ParamServer.set_value('system.detect_line', 0)
         ParamServer.set_value('system.mono_output', 1)
 
-    process = RosLineDetect()
+    process = RcLineDetect()
 
     if (gui_mode):
         app = QApplication(sys.argv)

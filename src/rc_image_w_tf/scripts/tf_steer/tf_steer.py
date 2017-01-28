@@ -29,6 +29,7 @@ KEEPPROB = 1.0
 class RcImageSteer():
 
     def __init__(self):
+        # --- for Tensorflow ---
         # input_holder.shape=[batch, height, width, depth]
         self.input_holder = tf.placeholder(tf.float32, shape=[60, 160, 1], name='input_image')
 
@@ -42,10 +43,11 @@ class RcImageSteer():
         checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_PATH)
         self.saver.restore(self._sess, checkpoint.model_checkpoint_path)
 
+        # --- for ROS ---
         rospy.init_node('rc_image_steer')
         self._cv_bridge = CvBridge()
+        self._pub = rospy.Publisher('servo2', UInt16MultiArray, queue_size=1)
         self._sub = rospy.Subscriber('image_processed', Image, self.callback, queue_size=1)
-        self._pub = rospy.Publisher('servo', UInt16MultiArray, queue_size=1)
 
     def callback(self, image_msg):
         cv_image = self._cv_bridge.imgmsg_to_cv2(image_msg, "mono8")
@@ -55,11 +57,11 @@ class RcImageSteer():
                                     feed_dict={self.input_holder: np_image})
 
         answer = np.argmax(logits_val, 1)
-        print('answer %3d' % (answer))
+        # print('answer %3d' % (answer))
+
         a = UInt16MultiArray()
-        print(answer[0])
-        # a.data = [answer[0], 10]
-        # self._pub.publish(a)
+        a.data = [answer[0], 80]
+        self._pub.publish(a)
 
     def main(self):
         rospy.spin()
