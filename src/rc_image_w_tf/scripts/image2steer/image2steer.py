@@ -16,28 +16,25 @@ from model import CNNModel
 
 # define
 CKPT_PATH = os.path.abspath(os.path.dirname(__file__)) + '/ckpt/'
-MODEL_NAME = 'model_w_zigzag'
 
 
 class RcImageSteer():
 
     def __init__(self):
+        rospy.init_node('rc_image2steer')
+
         # --- for Tensorflow ---
         self.cnn = CNNModel()
-
-        # ckpt = tf.train.get_checkpoint_state(CKPT_PATH)
-        # if ckpt:
-        #     self.cnn.saver.restore(self.cnn.sess, ckpt.model_checkpoint_path)
-        # else:
-        #     print('ckpt is not exist.')
-        #     exit(1)
-
-        self.cnn.saver.restore(self.cnn.sess, CKPT_PATH + MODEL_NAME)
+        model_name = rospy.get_param("~model_name")
+        self.cnn.saver.restore(self.cnn.sess, CKPT_PATH + model_name)
 
         # --- for ROS ---
-        rospy.init_node('rc_image2steer')
         self._cv_bridge = CvBridge()
-        self._pub = rospy.Publisher('servo2', UInt16MultiArray, queue_size=1)
+        test_mode = rospy.get_param("~testmode", False)
+        if test_mode:
+            self._pub = rospy.Publisher('servo2', UInt16MultiArray, queue_size=1)
+        else:
+            self._pub = rospy.Publisher('servo', UInt16MultiArray, queue_size=1)
         self._sub = rospy.Subscriber('image_processed', Image, self.callback, queue_size=1)
 
     def callback(self, image_msg):

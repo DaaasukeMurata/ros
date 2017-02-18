@@ -8,5 +8,7 @@
     </node>
 
     <node machine="host" pkg="rc_image_w_tf" type="image2steer.py" name="image2steer">
+        <param name="model_name" value="model_w_zigzag" type="String"/>
+	    <param name="testmode" value="true" type="bool"/>
     </node>
 </launch>

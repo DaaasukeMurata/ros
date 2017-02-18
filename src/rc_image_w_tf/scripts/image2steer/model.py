@@ -45,7 +45,6 @@ class CNNModel():
             h_pool2 = tf.nn.max_pool(h_conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
             h_pool2_flat = tf.reshape(h_pool2, [-1, (15 * 40 * 1 * NUM_FILTER2)], name='pool2-output')
 
-        # TODO stddevなくして精度落ちないか？
         with tf.name_scope('fc1'):
             dim = h_pool2_flat.get_shape()[1].value
             w2 = tf.Variable(tf.truncated_normal([dim, 384]))
@@ -69,27 +68,14 @@ class CNNModel():
             loss = -tf.reduce_sum(label_holder * tf.log(predictions), name='loss')
             train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
 
-# def _loss(logits, label):
-#     labels = tf.cast(label, tf.int64)
-#     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-#         logits, labels, name='cross_entropy_per_example')
-#     cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
-#     return cross_entropy_mean
-
-# def _train(total_loss, global_step):
-#     opt = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-#     grads = opt.compute_gradients(total_loss)
-#     train_op = opt.apply_gradients(grads, global_step=global_step)
-#     return train_op
-
         with tf.name_scope('evaluator'):
             correct_prediction = tf.equal(tf.argmax(predictions, 1), tf.argmax(label_holder, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy')
 
-        tf.scalar_summary("loss", loss)
-        tf.scalar_summary("accuracy", accuracy)
-        tf.histogram_summary("conv_filter1", W_conv1)
-        tf.histogram_summary("conv_filter2", W_conv2)
+        # tf.scalar_summary("loss", loss)
+        # tf.scalar_summary("accuracy", accuracy)
+        # tf.histogram_summary("conv_filter1", W_conv1)
+        # tf.histogram_summary("conv_filter2", W_conv2)
 
         self.input_holder = input_holder
         self.label_holder = label_holder
@@ -102,11 +88,11 @@ class CNNModel():
     def prepare_session(self):
         sess = tf.InteractiveSession()
         sess.run(tf.initialize_all_variables())
-        summary = tf.merge_all_summaries()
-        writer = tf.train.SummaryWriter(SUMMARY_PATH, sess.graph)
+        # summary = tf.merge_all_summaries()
+        # writer = tf.train.SummaryWriter(SUMMARY_PATH, sess.graph)
         saver = tf.train.Saver()
 
         self.sess = sess
-        self.summary = summary
-        self.writer = writer
+        # self.summary = summary
+        # self.writer = writer
         self.saver = saver
