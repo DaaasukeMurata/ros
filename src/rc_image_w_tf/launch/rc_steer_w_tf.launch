@@ -1,5 +1,5 @@
 <launch>
-    <machine name="host" address="localhost" env-loader="/home/murata/work/ros/rosmaster_stick.sh" />
+    <machine name="host" address="localhost" />
 
     <node machine="host" pkg="rc_image_w_tf" type="rc_line_detect.py" name="rc_line_detect">
         <param name="image" value="/usb_cam_node/image_raw" type="String"/>
@@ -9,6 +9,6 @@
 
     <node machine="host" pkg="rc_image_w_tf" type="image2steer.py" name="image2steer">
         <param name="model_name" value="model_w_zigzag" type="String"/>
-	    <param name="testmode" value="true" type="bool"/>
+	    <param name="testmode" value="false" type="bool"/>
     </node>
 </launch>
