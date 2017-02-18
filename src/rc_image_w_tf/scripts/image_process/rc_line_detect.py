@@ -63,13 +63,6 @@ if __name__ == '__main__':
     rospy.init_node('rc_line_detect')
     gui_mode = rospy.get_param("~gui", True)
     log_mode = rospy.get_param("~logmode", False)
-    # gui_mode = True
-    # log_mode = False
-    for arg in sys.argv:
-        if (arg == '--disable-gui'):
-            gui_mode = False
-        elif (arg == '--logmode'):
-            log_mode = True
 
     if (log_mode):
         ParamServer.set_value('system.detect_line', 0)

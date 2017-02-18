@@ -16,6 +16,7 @@ from model import CNNModel
 
 # define
 CKPT_PATH = os.path.abspath(os.path.dirname(__file__)) + '/ckpt/'
+MODEL_NAME = 'model_w_zigzag'
 
 
 class RcImageSteer():
@@ -24,12 +25,14 @@ class RcImageSteer():
         # --- for Tensorflow ---
         self.cnn = CNNModel()
 
-        ckpt = tf.train.get_checkpoint_state(CKPT_PATH)
-        if ckpt:
-            self.cnn.saver.restore(self.cnn.sess, ckpt.model_checkpoint_path)
-        else:
-            print('ckpt is not exist.')
-            exit(1)
+        # ckpt = tf.train.get_checkpoint_state(CKPT_PATH)
+        # if ckpt:
+        #     self.cnn.saver.restore(self.cnn.sess, ckpt.model_checkpoint_path)
+        # else:
+        #     print('ckpt is not exist.')
+        #     exit(1)
+
+        self.cnn.saver.restore(self.cnn.sess, CKPT_PATH + MODEL_NAME)
 
         # --- for ROS ---
         rospy.init_node('rc_image2steer')
@@ -42,8 +45,8 @@ class RcImageSteer():
         x = np.reshape(cv_image, (1, 60, 160, 1))
 
         p = self.cnn.sess.run(self.cnn.predictions,
-                         feed_dict={self.cnn.input_holder: x,
-                                    self.cnn.keepprob_holder: 1.0})
+                              feed_dict={self.cnn.input_holder: x,
+                                         self.cnn.keepprob_holder: 1.0})
 
         answer = np.argmax(p, 1)
         # print('answer %3d' % (answer))
