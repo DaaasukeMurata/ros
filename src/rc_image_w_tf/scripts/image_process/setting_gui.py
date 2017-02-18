@@ -15,10 +15,10 @@ class SliderItem(QWidget):
         self.init_ui(name, init_value, range_low, range_high)
 
     def init_ui(self, name, init_value, range_low, range_high):
-        # floatの場合、スライドの値1で、反映値0.1とする
+        # floatの場合、スライドの値1で、反映値0.025とする
         self.dpi = 1
         if isinstance(init_value, float):
-            self.dpi = 10
+            self.dpi = 40
 
         self.label = QLabel(ParamServer.get_param_name(name))
         self.slider = QSlider(Qt.Horizontal)  # スライダの向き

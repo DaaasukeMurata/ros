@@ -3,6 +3,7 @@
 
 import cv2
 import numpy as np
+import math
 from param_server import ParamServer
 
 
@@ -105,20 +106,17 @@ class ProcessingImage():
         self.__to_gray()
         return cv2.HoughLinesP(self.img, 1, np.pi / 180, THRESHOLD, MIN_LINE_LENGTH, MAX_LINE_GAP)
 
+    # y = tan(θ) * x + b
     def __get_segment(self, x1, y1, x2, y2):
         vy = y2 - y1
         vx = x2 - x1
 
-        if vx == 0:
-            m = 0.
-        else:
-            m = (float)(vy) / vx
+        theta = math.atan2(vy, vx)
+        b = y1 - (math.tan(theta) * x1)
+        return theta, b
 
-        b = y1 - (m * x1)
-        return m, b
-
-    def __get_point_horizontal(self, m, b, y_ref):
-        x = (y_ref - b) / m
+    def __get_point_horizontal(self, theta, b, y_ref):
+        x = (y_ref - b) / math.tan(theta)
         return x
 
     def __extrapolation_lines(self, lines):
@@ -147,16 +145,18 @@ class ProcessingImage():
                     y1 = ty2
                     y2 = ty1
 
-                m, b = self.__get_segment(x1, y1, x2, y2)
-                if EXPECT_RIGHT_LINE_M_MIN < m < EXPECT_RIGHT_LINE_M_MAX:
+                theta, b = self.__get_segment(x1, y1, x2, y2)
+                if EXPECT_RIGHT_LINE_M_MIN * math.pi <= theta <= EXPECT_RIGHT_LINE_M_MAX * math.pi:
                     # right side
-                    right_line = np.append(right_line, np.array([[x1, y1, x2, y2, m, b]]), axis=0)
-                elif EXPECT_LEFT_LINE_M_MIN < m < EXPECT_LEFT_LINE_M_MAX:
+                    right_line = np.append(right_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
+                elif EXPECT_LEFT_LINE_M_MIN * math.pi <= theta <= EXPECT_LEFT_LINE_M_MAX * math.pi:
                     # left side
-                    left_line = np.append(left_line, np.array([[x1, y1, x2, y2, m, b]]), axis=0)
+                    left_line = np.append(left_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
 
         # print 'right lines num:', right_line.size
+        # print right_line
         # print 'left lines num:', left_line.size
+        # print left_line
 
         if (right_line.size == 0) and (left_line.size == 0):
             return None
@@ -165,30 +165,37 @@ class ProcessingImage():
 
         if (right_line.size > 0):
 
-            right_m = right_line[:, 4].mean(axis=0)
+            right_theta = right_line[:, 4].mean(axis=0)
             right_b = right_line[:, 5].mean(axis=0)
-            right_y_max = right_line[:, 3].max(axis=0)
-            right_y_min = right_line[:, 1].min(axis=0)
 
-            right_x_min = self.__get_point_horizontal(right_m, right_b, right_y_min)
-            right_x_max = self.__get_point_horizontal(right_m, right_b, right_y_max)
+            right_x_min = (right_line[:, 0].min(axis=0) + right_line[:, 2].max(axis=0)) / 2
+            right_x_max = right_x_min
+            right_y_min = right_line[:, 1].min(axis=0)
+            right_y_max = right_line[:, 3].max(axis=0)
 
             right_x_min = int(right_x_min)
             right_x_max = int(right_x_max)
             right_y_min = int(right_y_min)
             right_y_max = int(right_y_max)
 
+            # print (right_theta, right_b, right_x_min, right_y_min, right_x_max, right_y_max)
+
             extrapolation_lines.append([right_x_min, right_y_min, right_x_max, right_y_max])
 
         if (left_line.size > 0):
 
-            left_m = left_line[:, 4].mean(axis=0)
+            left_theta = left_line[:, 4].mean(axis=0)
             left_b = left_line[:, 5].mean(axis=0)
-            left_y_max = left_line[:, 3].max(axis=0)
-            left_y_min = left_line[:, 1].min(axis=0)
 
-            left_x_min = self.__get_point_horizontal(left_m, left_b, left_y_min)
-            left_x_max = self.__get_point_horizontal(left_m, left_b, left_y_max)
+            # left_y_max = left_line[:, 3].max(axis=0)
+            # left_y_min = left_line[:, 1].min(axis=0)
+            # left_x_min = self.__get_point_horizontal(left_theta, left_b, left_y_min)
+            # left_x_max = self.__get_point_horizontal(left_theta, left_b, left_y_max)
+
+            left_x_min = left_line[:, 0].min(axis=0)
+            left_x_max = left_line[:, 2].max(axis=0)
+            left_y_min = left_line[:, 1].min(axis=0)
+            left_y_max = left_line[:, 3].max(axis=0)
 
             left_x_min = int(left_x_min)
             left_x_max = int(left_x_max)
@@ -210,10 +217,10 @@ class ProcessingImage():
             self.__detect_edge()
 
     def detect_line(self, color_pre=[0, 255, 0], color_final=[0, 0, 255], thickness=4):
-        MASK_V1 = [0. / 640., 400. / 480.]
-        MASK_V2 = [0. / 640., 200. / 480.]
-        MASK_V3 = [640. / 640., 200. / 480.]
-        MASK_V4 = [640. / 640., 400. / 480.]
+        MASK_V1 = [300. / 1280., 440. / 480.]
+        MASK_V2 = [200. / 1280., 250. / 480.]
+        MASK_V3 = [700. / 1280., 250. / 480.]
+        MASK_V4 = [980. / 1280., 440. / 480.]
 
         # image mask
         if ParamServer.get_value('system.image_mask'):

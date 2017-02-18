@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+import math
 
 
 class Param(object):
@@ -28,14 +29,14 @@ class ParamServer():
     # 'func_name.param_name'をkeyに持つdictionary
     # [value, 下限, 上限]
     __params = OrderedDict()
-    __params['system.pre_resize'] = LinearParam(value=2, lower=1, upper=10)    
+    __params['system.pre_resize'] = LinearParam(value=2, lower=1, upper=10)
     __params['system.color_filter'] = BoolParam(value=0)
-    __params['system.to_gray'] = BoolParam(value=0)
+    __params['system.to_gray'] = BoolParam(value=1)
     __params['system.blur'] = BoolParam(value=1)
     __params['system.detect_edge'] = BoolParam(value=1)
     __params['system.image_mask'] = BoolParam(value=1)
     __params['system.detect_line'] = BoolParam(value=1)
-    __params['system.final_resize'] = LinearParam(value=4, lower=1, upper=10)    
+    __params['system.final_resize'] = LinearParam(value=4, lower=1, upper=10)
     __params['system.mono_output'] = BoolParam(value=0)
     __params['color.low_b'] = LinearParam(value=0, lower=0, upper=255)
     __params['color.low_g'] = LinearParam(value=110, lower=0, upper=255)
@@ -51,10 +52,10 @@ class ParamServer():
     __params['houghline.threshold'] = LinearParam(value=50, lower=1, upper=200)
     __params['houghline.min_line_length'] = LinearParam(value=10, lower=1, upper=100)
     __params['houghline.max_line_gap'] = LinearParam(value=30, lower=1, upper=100)
-    __params['extrapolation_lines.right_m_min'] = LinearParam(value=-0.7, lower=-1.0, upper=1.0)
-    __params['extrapolation_lines.right_m_max'] = LinearParam(value=-0.1, lower=-1.0, upper=1.0)
-    __params['extrapolation_lines.left_m_min'] = LinearParam(value=0.1, lower=-1.0, upper=1.0)
-    __params['extrapolation_lines.left_m_max'] = LinearParam(value=0.7, lower=-1.0, upper=1.0)
+    __params['extrapolation_lines.right_m_min'] = LinearParam(value=0.4, lower=-1.0, upper=1.0)
+    __params['extrapolation_lines.right_m_max'] = LinearParam(value=0.6, lower=-1.0, upper=1.0)
+    __params['extrapolation_lines.left_m_min'] = LinearParam(value=0.025, lower=-1.0, upper=1.0)
+    __params['extrapolation_lines.left_m_max'] = LinearParam(value=0.2, lower=-1.0, upper=1.0)
 
     value_changed_func = None
 

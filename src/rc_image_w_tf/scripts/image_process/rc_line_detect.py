@@ -65,8 +65,12 @@ if __name__ == '__main__':
     log_mode = rospy.get_param("~logmode", False)
 
     if (log_mode):
+        ParamServer.set_value('system.to_gray', 0)
         ParamServer.set_value('system.detect_line', 0)
+        ParamServer.set_value('system.final_resize', 4)
         ParamServer.set_value('system.mono_output', 1)
+
+
 
     process = RcLineDetect()
 
