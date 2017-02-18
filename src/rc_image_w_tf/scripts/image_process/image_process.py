@@ -178,19 +178,12 @@ class ProcessingImage():
             right_y_min = int(right_y_min)
             right_y_max = int(right_y_max)
 
-            # print (right_theta, right_b, right_x_min, right_y_min, right_x_max, right_y_max)
-
             extrapolation_lines.append([right_x_min, right_y_min, right_x_max, right_y_max])
 
         if (left_line.size > 0):
 
             left_theta = left_line[:, 4].mean(axis=0)
             left_b = left_line[:, 5].mean(axis=0)
-
-            # left_y_max = left_line[:, 3].max(axis=0)
-            # left_y_min = left_line[:, 1].min(axis=0)
-            # left_x_min = self.__get_point_horizontal(left_theta, left_b, left_y_min)
-            # left_x_max = self.__get_point_horizontal(left_theta, left_b, left_y_max)
 
             left_x_min = left_line[:, 0].min(axis=0)
             left_x_max = left_line[:, 2].max(axis=0)
@@ -216,10 +209,10 @@ class ProcessingImage():
         if ParamServer.get_value('system.detect_edge'):
             self.__detect_edge()
 
-    def detect_line(self, color_pre=[0, 255, 0], color_final=[0, 0, 255], thickness=4):
+    def detect_line(self, color_pre=[0, 255, 0], color_final=[0, 0, 255], thickness_pre=1, thickness_final=8):
         MASK_V1 = [300. / 1280., 440. / 480.]
-        MASK_V2 = [200. / 1280., 250. / 480.]
-        MASK_V3 = [700. / 1280., 250. / 480.]
+        MASK_V2 = [580. / 1280., 260. / 480.]
+        MASK_V3 = [700. / 1280., 260. / 480.]
         MASK_V4 = [980. / 1280., 440. / 480.]
 
         # image mask
@@ -241,14 +234,14 @@ class ProcessingImage():
         if (pre_lines is None):
             return
         for x1, y1, x2, y2 in pre_lines[0]:
-            cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness)
+            cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness_pre)
         self.img = line_img
 
         # draw final_lines
         if (final_lines is None):
             return
         for x1, y1, x2, y2 in final_lines:
-            cv2.line(line_img, (x1, y1), (x2, y2), color_final, thickness)
+            cv2.line(line_img, (x1, y1), (x2, y2), color_final, thickness_final)
         self.img = line_img
 
     def overlay(self, img):
