@@ -121,16 +121,16 @@ class ProcessingImage():
 
     def __extrapolation_lines(self, lines):
         # 検出する線の傾き範囲
-        EXPECT_STRAIGHT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.straight_m_min')
-        EXPECT_STRAIGHT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.straight_m_max')
+        EXPECT_FRONT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.front_m_min')
+        EXPECT_FRONT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.front_m_max')
         EXPECT_LEFT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.left_m_min')
         EXPECT_LEFT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.left_m_max')
 
         if lines is None:
             return None
 
-        straight_line = np.empty((0, 6), float)
-        left_line = np.empty((0, 6), float)
+        front_lines = np.empty((0, 6), float)
+        left_lines = np.empty((0, 6), float)
 
         for line in lines:
             for tx1, ty1, tx2, ty2 in line:
@@ -146,51 +146,51 @@ class ProcessingImage():
                     y2 = ty1
 
                 theta, b = self.__get_segment(x1, y1, x2, y2)
-                if EXPECT_STRAIGHT_LINE_M_MIN * math.pi <= theta <= EXPECT_STRAIGHT_LINE_M_MAX * math.pi:
-                    straight_line = np.append(straight_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
+                if EXPECT_FRONT_LINE_M_MIN * math.pi <= theta <= EXPECT_FRONT_LINE_M_MAX * math.pi:
+                    front_lines = np.append(front_lines, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
 
                 elif ((EXPECT_LEFT_LINE_M_MIN * math.pi <= theta <= EXPECT_LEFT_LINE_M_MAX * math.pi)
                       and (x1 < (640. / 1280.) * self.img.shape[1])
                       and (x2 < (640. / 1280.) * self.img.shape[1])):
                     # left curve
-                    left_line = np.append(left_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
+                    left_lines = np.append(left_lines, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
 
-        # print 'straight lines num:', straight_line.size
-        # print straight_line
-        # print 'left lines num:', left_line.size
-        # print left_line
+        # print 'front lines num:', front_lines.size
+        # print front_lines
+        # print 'left lines num:', left_lines.size
+        # print left_lines
 
-        if (straight_line.size == 0) and (left_line.size == 0):
+        if (front_lines.size == 0) and (left_lines.size == 0):
             return None
 
         extrapolation_lines = []
 
-        if (straight_line.size > 0):
+        if (front_lines.size > 0):
 
-            straight_theta = straight_line[:, 4].mean(axis=0)
-            straight_b = straight_line[:, 5].mean(axis=0)
+            front_theta = front_lines[:, 4].mean(axis=0)
+            front_b = front_lines[:, 5].mean(axis=0)
 
-            straight_x_min = (straight_line[:, 0].min(axis=0) + straight_line[:, 2].max(axis=0)) / 2
-            straight_x_max = straight_x_min
-            straight_y_min = straight_line[:, 1].min(axis=0)
-            straight_y_max = straight_line[:, 3].max(axis=0)
+            front_x_min = (front_lines[:, 0].min(axis=0) + front_lines[:, 2].max(axis=0)) / 2
+            front_x_max = front_x_min
+            front_y_min = front_lines[:, 1].min(axis=0)
+            front_y_max = front_lines[:, 3].max(axis=0)
 
-            straight_x_min = int(straight_x_min)
-            straight_x_max = int(straight_x_max)
-            straight_y_min = int(straight_y_min)
-            straight_y_max = int(straight_y_max)
+            front_x_min = int(front_x_min)
+            front_x_max = int(front_x_max)
+            front_y_min = int(front_y_min)
+            front_y_max = int(front_y_max)
 
-            extrapolation_lines.append([straight_x_min, straight_y_min, straight_x_max, straight_y_max])
+            extrapolation_lines.append([front_x_min, front_y_min, front_x_max, front_y_max])
 
-        if (left_line.size > 0):
+        if (left_lines.size > 0):
 
-            left_theta = left_line[:, 4].mean(axis=0)
-            left_b = left_line[:, 5].mean(axis=0)
+            left_theta = left_lines[:, 4].mean(axis=0)
+            left_b = left_lines[:, 5].mean(axis=0)
 
-            left_x_min = left_line[:, 0].min(axis=0)
-            left_x_max = left_line[:, 2].max(axis=0)
-            left_y_min = left_line[:, 1].min(axis=0)
-            left_y_max = left_line[:, 3].max(axis=0)
+            left_x_min = left_lines[:, 0].min(axis=0)
+            left_x_max = left_lines[:, 2].max(axis=0)
+            left_y_min = left_lines[:, 1].min(axis=0)
+            left_y_max = left_lines[:, 3].max(axis=0)
 
             left_x_min = int(left_x_min)
             left_x_max = int(left_x_max)

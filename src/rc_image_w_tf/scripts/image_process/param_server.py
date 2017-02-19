@@ -52,8 +52,8 @@ class ParamServer():
     __params['houghline.threshold'] = LinearParam(value=50, lower=1, upper=200)
     __params['houghline.min_line_length'] = LinearParam(value=10, lower=1, upper=100)
     __params['houghline.max_line_gap'] = LinearParam(value=50, lower=1, upper=100)
-    __params['extrapolation_lines.straight_m_min'] = LinearParam(value=0.4, lower=-1.0, upper=1.0)
-    __params['extrapolation_lines.straight_m_max'] = LinearParam(value=0.6, lower=-1.0, upper=1.0)
+    __params['extrapolation_lines.front_m_min'] = LinearParam(value=0.4, lower=-1.0, upper=1.0)
+    __params['extrapolation_lines.front_m_max'] = LinearParam(value=0.6, lower=-1.0, upper=1.0)
     __params['extrapolation_lines.left_m_min'] = LinearParam(value=0.025, lower=-1.0, upper=1.0)
     __params['extrapolation_lines.left_m_max'] = LinearParam(value=0.2, lower=-1.0, upper=1.0)
 
