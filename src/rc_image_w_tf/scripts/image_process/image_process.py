@@ -170,10 +170,12 @@ class ProcessingImage():
             front_theta = front_lines[:, 4].mean(axis=0)
             front_b = front_lines[:, 5].mean(axis=0)
 
-            front_x_min = (front_lines[:, 0].min(axis=0) + front_lines[:, 2].max(axis=0)) / 2
-            front_x_max = front_x_min
-            front_y_min = front_lines[:, 1].min(axis=0)
-            front_y_max = front_lines[:, 3].max(axis=0)
+            y_min_index = front_lines[:, 1].argmin(axis=0)
+            y_max_index = front_lines[:, 3].argmax(axis=0)
+            front_y_min = front_lines[y_min_index, 1]
+            front_y_max = front_lines[y_max_index, 3]
+            front_x_min = front_lines[y_min_index, 0]
+            front_x_max = front_lines[y_max_index, 2]
 
             front_x_min = int(front_x_min)
             front_x_max = int(front_x_max)
