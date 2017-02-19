@@ -70,8 +70,6 @@ if __name__ == '__main__':
         ParamServer.set_value('system.final_resize', 4)
         ParamServer.set_value('system.mono_output', 1)
 
-
-
     process = RcLineDetect()
 
     if (gui_mode):

@@ -121,15 +121,15 @@ class ProcessingImage():
 
     def __extrapolation_lines(self, lines):
         # 検出する線の傾き範囲
-        EXPECT_RIGHT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.right_m_min')
-        EXPECT_RIGHT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.right_m_max')
+        EXPECT_STRAIGHT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.straight_m_min')
+        EXPECT_STRAIGHT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.straight_m_max')
         EXPECT_LEFT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.left_m_min')
         EXPECT_LEFT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.left_m_max')
 
         if lines is None:
             return None
 
-        right_line = np.empty((0, 6), float)
+        straight_line = np.empty((0, 6), float)
         left_line = np.empty((0, 6), float)
 
         for line in lines:
@@ -146,39 +146,41 @@ class ProcessingImage():
                     y2 = ty1
 
                 theta, b = self.__get_segment(x1, y1, x2, y2)
-                if EXPECT_RIGHT_LINE_M_MIN * math.pi <= theta <= EXPECT_RIGHT_LINE_M_MAX * math.pi:
-                    # right side
-                    right_line = np.append(right_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
-                elif EXPECT_LEFT_LINE_M_MIN * math.pi <= theta <= EXPECT_LEFT_LINE_M_MAX * math.pi:
-                    # left side
+                if EXPECT_STRAIGHT_LINE_M_MIN * math.pi <= theta <= EXPECT_STRAIGHT_LINE_M_MAX * math.pi:
+                    straight_line = np.append(straight_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
+
+                elif ((EXPECT_LEFT_LINE_M_MIN * math.pi <= theta <= EXPECT_LEFT_LINE_M_MAX * math.pi)
+                      and (x1 < (640. / 1280.) * self.img.shape[1])
+                      and (x2 < (640. / 1280.) * self.img.shape[1])):
+                    # left curve
                     left_line = np.append(left_line, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
 
-        # print 'right lines num:', right_line.size
-        # print right_line
+        # print 'straight lines num:', straight_line.size
+        # print straight_line
         # print 'left lines num:', left_line.size
         # print left_line
 
-        if (right_line.size == 0) and (left_line.size == 0):
+        if (straight_line.size == 0) and (left_line.size == 0):
             return None
 
         extrapolation_lines = []
 
-        if (right_line.size > 0):
+        if (straight_line.size > 0):
 
-            right_theta = right_line[:, 4].mean(axis=0)
-            right_b = right_line[:, 5].mean(axis=0)
+            straight_theta = straight_line[:, 4].mean(axis=0)
+            straight_b = straight_line[:, 5].mean(axis=0)
 
-            right_x_min = (right_line[:, 0].min(axis=0) + right_line[:, 2].max(axis=0)) / 2
-            right_x_max = right_x_min
-            right_y_min = right_line[:, 1].min(axis=0)
-            right_y_max = right_line[:, 3].max(axis=0)
+            straight_x_min = (straight_line[:, 0].min(axis=0) + straight_line[:, 2].max(axis=0)) / 2
+            straight_x_max = straight_x_min
+            straight_y_min = straight_line[:, 1].min(axis=0)
+            straight_y_max = straight_line[:, 3].max(axis=0)
 
-            right_x_min = int(right_x_min)
-            right_x_max = int(right_x_max)
-            right_y_min = int(right_y_min)
-            right_y_max = int(right_y_max)
+            straight_x_min = int(straight_x_min)
+            straight_x_max = int(straight_x_max)
+            straight_y_min = int(straight_y_min)
+            straight_y_max = int(straight_y_max)
 
-            extrapolation_lines.append([right_x_min, right_y_min, right_x_max, right_y_max])
+            extrapolation_lines.append([straight_x_min, straight_y_min, straight_x_max, straight_y_max])
 
         if (left_line.size > 0):
 
