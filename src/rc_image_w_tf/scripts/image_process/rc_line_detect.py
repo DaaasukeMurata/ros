@@ -6,11 +6,16 @@
 
 
 import sys
+import copy
 import rospy
+import numpy as np
+
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+
 import image_process
 import setting_gui
 from param_server import ParamServer
@@ -32,29 +37,49 @@ class RcLineDetect():
         self.last_image_msg = image_msg
         cv_image = self.__cv_bridge.imgmsg_to_cv2(image_msg, 'bgr8')
 
-        pimg = image_process.ProcessingImage(cv_image)
+        pre_img = image_process.ProcessingImage(cv_image)
 
-        # 処理負荷軽減のための事前縮小
+        # pre  :処理負荷軽減のための事前縮小
+        # final:deep learning学習データ用の縮小。 pre_resize * final_resizeの値が最終データとなる
         pre_scale = 1.0 / ParamServer.get_value('system.pre_resize')
-        pimg.resize(pre_scale)
+        final_scale = 1.0 / ParamServer.get_value('system.final_resize')
+        pre_img.resize(pre_scale)
 
         # 抽象化
-        pimg.preprocess()
+        pre_img.preprocess()
 
-        # 直線検出
-        if ParamServer.get_value('system.detect_line'):
-            pre_img = pimg.get_img()
-            pimg.detect_line()
-            pimg.overlay(pre_img)
+        # 画像出力 for rqt_image_view
+        if (rospy.get_param("~gui", True)):
+            out_img = copy.deepcopy(pre_img)
+            # 直線検出
+            if ParamServer.get_value('system.detect_line'):
+                out_img.detect_line()
+                out_img.overlay(pre_img.get_img())
 
-        # deep learning学習データ用の縮小。 pre_resize * final_resizeの値が最終データとなる
-        final_scale = 1.0 / ParamServer.get_value('system.final_resize')
-        pimg.resize(final_scale)
+            out_img.resize(final_scale)
+            self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(out_img.get_img(), 'bgr8'))
 
-        if ParamServer.get_value('system.mono_output'):
-            self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(pimg.get_grayimg(), 'mono8'))
+        # bin出力 for Tensorflow
         else:
-            self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(pimg.get_img(), 'bgr8'))
+            pro_img = copy.deepcopy(pre_img)
+            pro_img.resize(final_scale)
+            pro_array = np.reshape(pro_img.get_grayimg(), (60, 160, 1))
+
+            out_dim = rospy.get_param("~dim", 2)
+            if out_dim == 1:
+                self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(pro_array, 'mono8'))
+
+            elif out_dim == 2:
+                # line detect
+                line_img = copy.deepcopy(pre_img)
+                line_img.detect_line(bin_out=True, thickness_final=16)
+                line_img.resize(final_scale)
+                line_array = np.reshape(line_img.get_grayimg(), (60, 160, 1))
+
+                # output
+                dummy_array = np.zeros((60, 160, 1), np.uint8)
+                out_bin = np.dstack((pro_array, line_array, dummy_array))
+                self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(out_bin, 'bgr8'))
 
     def main(self):
         rospy.spin()
@@ -62,16 +87,15 @@ class RcLineDetect():
 if __name__ == '__main__':
     rospy.init_node('rc_line_detect')
     gui_mode = rospy.get_param("~gui", True)
-    mono_mode = rospy.get_param("~mono_mode", False)
-    multi_mode = rospy.get_param("~multi_mode", False)
+    out_dim = rospy.get_param("~dim", 2)
 
-    if (mono_mode):
+    if out_dim == 1:
         ParamServer.set_value('system.to_gray', 0)
         ParamServer.set_value('system.detect_line', 0)
         ParamServer.set_value('system.final_resize', 4)
         ParamServer.set_value('system.mono_output', 1)
 
-    if (multi_mode):
+    elif out_dim == 2:
         ParamServer.set_value('system.to_gray', 1)
         ParamServer.set_value('system.detect_line', 1)
         ParamServer.set_value('system.final_resize', 4)
@@ -80,6 +104,7 @@ if __name__ == '__main__':
     process = RcLineDetect()
 
     if (gui_mode):
+        ParamServer.set_value('system.final_resize', 1)
         app = QApplication(sys.argv)
         gui = setting_gui.SettingWindow()
         app.exec_()

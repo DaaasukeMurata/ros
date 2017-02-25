@@ -49,7 +49,7 @@ class RcImageSteer():
         # print('answer %3d' % (answer))
 
         a = UInt16MultiArray()
-        a.data = [answer[0], 80]
+        a.data = [answer[0], 83]
         self._pub.publish(a)
 
     def main(self):

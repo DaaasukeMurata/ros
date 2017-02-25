@@ -225,7 +225,7 @@ class ProcessingImage():
         if ParamServer.get_value('system.detect_edge'):
             self.__detect_edge()
 
-    def detect_line(self, color_pre=[0, 255, 0], color_final=[0, 0, 255], thickness_pre=1, thickness_final=8):
+    def detect_line(self, bin_out=False, color_pre=[0, 255, 0], color_final=[0, 0, 255], thickness_pre=1, thickness_final=8):
         MASK_V1 = [300. / 1280., 440. / 480.]
         MASK_V2 = [580. / 1280., 260. / 480.]
         MASK_V3 = [700. / 1280., 260. / 480.]
@@ -240,25 +240,42 @@ class ProcessingImage():
         pre_lines = self.__houghline()
         final_lines = self.__extrapolation_lines(pre_lines)
 
-        # create image
-        if len(self.img.shape) == 3:
-            line_img = np.zeros((self.img.shape), np.uint8)
+        if bin_out:
+            # create image
+            if len(self.img.shape) == 3:
+                line_img = np.zeros((self.img.shape), np.uint8)
+            else:
+                line_img = np.zeros((self.img.shape[0], self.img.shape[1], 3), np.uint8)
+
+            # draw final_lines
+            if (final_lines is None):
+                self.img = line_img
+                return
+            for x1, y1, x2, y2 in final_lines:
+                cv2.line(line_img, (x1, y1), (x2, y2), [255, 255, 255], thickness_final)
+            self.img = line_img
+
         else:
-            line_img = np.zeros((self.img.shape[0], self.img.shape[1], 3), np.uint8)
+            # create image
+            if len(self.img.shape) == 3:
+                line_img = np.zeros((self.img.shape), np.uint8)
+            else:
+                line_img = np.zeros((self.img.shape[0], self.img.shape[1], 3), np.uint8)
 
-        # draw pre_lines
-        if (pre_lines is None):
-            return
-        for x1, y1, x2, y2 in pre_lines[0]:
-            cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness_pre)
-        self.img = line_img
+            # draw pre_lines
+            if (pre_lines is None):
+                self.img = line_img
+                return
+            for x1, y1, x2, y2 in pre_lines[0]:
+                cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness_pre)
 
-        # draw final_lines
-        if (final_lines is None):
-            return
-        for x1, y1, x2, y2 in final_lines:
-            cv2.line(line_img, (x1, y1), (x2, y2), color_final, thickness_final)
-        self.img = line_img
+            # draw final_lines
+            if (final_lines is None):
+                self.img = line_img
+                return
+            for x1, y1, x2, y2 in final_lines:
+                cv2.line(line_img, (x1, y1), (x2, y2), color_final, thickness_final)
+            self.img = line_img
 
     def overlay(self, img):
         ALPHA = 1.0
