@@ -53,6 +53,18 @@ class MathLines():
                 x_val = line.x1
         return y_max, x_val
 
+    def get_rough_x(self, y, threshold=10):
+        sum_x = 0
+        count = 0
+        for line in self.lines:
+            if abs(line.y1 - y) <= threshold:
+                sum_x += line.x1
+                count += 1
+            elif abs(line.y2 - y) <= threshold:
+                sum_x += line.x2
+                count += 1
+        return sum_x / count
+
     def get_num(self):
         return len(self.lines)
 
@@ -156,18 +168,6 @@ class ProcessingImage():
         self.__to_gray()
         return cv2.HoughLinesP(self.img, 1, np.pi / 180, THRESHOLD, MIN_LINE_LENGTH, MAX_LINE_GAP)
 
-    def __get_rough_x(self, x, lines, threshold=10):
-        sum = x
-        count = 1
-        for line in lines:
-            if x - threshold <= line[0] <= x + threshold:
-                sum += line[0]
-                count += 1
-        print 'x:', x, '  lines:', lines
-        print int(sum / count)
-
-        return sum / count
-
     def __extrapolation_lines(self, lines):
 
         if lines is None:
@@ -203,7 +203,9 @@ class ProcessingImage():
 
         if (front_lines.get_num() > 0):
             y_min, x_min = front_lines.get_y_min()
-            y_max, x_max = front_lines.get_y_max()
+            y_max, _x = front_lines.get_y_max()
+            th = (50. / 480.) * self.img.shape[0]  # self.img.shape[0]が画像の縦
+            x_max = front_lines.get_rough_x(y_max, threshold=th)
             extrapolation_lines.append([x_min, y_min, x_max, y_max])
 
         if (left_lines.get_num() > 0):
