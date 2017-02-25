@@ -62,13 +62,20 @@ class RcLineDetect():
 if __name__ == '__main__':
     rospy.init_node('rc_line_detect')
     gui_mode = rospy.get_param("~gui", True)
-    log_mode = rospy.get_param("~logmode", False)
+    mono_mode = rospy.get_param("~mono_mode", False)
+    multi_mode = rospy.get_param("~multi_mode", False)
 
-    if (log_mode):
+    if (mono_mode):
         ParamServer.set_value('system.to_gray', 0)
         ParamServer.set_value('system.detect_line', 0)
         ParamServer.set_value('system.final_resize', 4)
         ParamServer.set_value('system.mono_output', 1)
+
+    if (multi_mode):
+        ParamServer.set_value('system.to_gray', 1)
+        ParamServer.set_value('system.detect_line', 1)
+        ParamServer.set_value('system.final_resize', 4)
+        ParamServer.set_value('system.mono_output', 0)
 
     process = RcLineDetect()
 
