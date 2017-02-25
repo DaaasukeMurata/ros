@@ -7,6 +7,56 @@ import math
 from param_server import ParamServer
 
 
+class MathLine():
+
+    def __init__(self, x1, y1, x2, y2):
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        self.piangle = self.__get_piangle()
+
+    def __get_piangle(self):
+        # y = tan(θ) * x + b
+        vy = self.y2 - self.y1
+        vx = self.x2 - self.x1
+        return math.atan2(vy, vx) / math.pi
+
+
+class MathLines():
+
+    def __init__(self):
+        self.lines = []
+
+    def append(self, line):
+        self.lines.append(line)
+
+    def get_y_min(self):
+        y_min = 100000
+        for line in self.lines:
+            if (line.piangle >= 0) and (line.y1 <= y_min):
+                y_min = line.y1
+                x_val = line.x1
+            elif (line.piangle < 0) and (line.y2 <= y_min):
+                y_min = line.y2
+                x_val = line.x2
+        return y_min, x_val
+
+    def get_y_max(self):
+        y_max = 0
+        for line in self.lines:
+            if (line.piangle >= 0) and (line.y2 >= y_max):
+                y_max = line.y2
+                x_val = line.x2
+            elif (line.piangle < 0) and (line.y1 >= y_max):
+                y_max = line.y1
+                x_val = line.x1
+        return y_max, x_val
+
+    def get_num(self):
+        return len(self.lines)
+
+
 class ProcessingImage():
 
     def __init__(self, img):
@@ -106,100 +156,60 @@ class ProcessingImage():
         self.__to_gray()
         return cv2.HoughLinesP(self.img, 1, np.pi / 180, THRESHOLD, MIN_LINE_LENGTH, MAX_LINE_GAP)
 
-    # y = tan(θ) * x + b
-    def __get_segment(self, x1, y1, x2, y2):
-        vy = y2 - y1
-        vx = x2 - x1
+    def __get_rough_x(self, x, lines, threshold=10):
+        sum = x
+        count = 1
+        for line in lines:
+            if x - threshold <= line[0] <= x + threshold:
+                sum += line[0]
+                count += 1
+        print 'x:', x, '  lines:', lines
+        print int(sum / count)
 
-        theta = math.atan2(vy, vx)
-        b = y1 - (math.tan(theta) * x1)
-        return theta, b
-
-    def __get_point_horizontal(self, theta, b, y_ref):
-        x = (y_ref - b) / math.tan(theta)
-        return x
+        return sum / count
 
     def __extrapolation_lines(self, lines):
+
+        if lines is None:
+            return None
+
         # 検出する線の傾き範囲
         EXPECT_FRONT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.front_m_min')
         EXPECT_FRONT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.front_m_max')
         EXPECT_LEFT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.left_m_min')
         EXPECT_LEFT_LINE_M_MAX = ParamServer.get_value('extrapolation_lines.left_m_max')
 
-        if lines is None:
-            return None
-
-        front_lines = np.empty((0, 6), float)
-        left_lines = np.empty((0, 6), float)
+        front_lines = MathLines()
+        left_lines = MathLines()
 
         for line in lines:
-            for tx1, ty1, tx2, ty2 in line:
-                if ty2 > ty1:
-                    x1 = tx1
-                    x2 = tx2
-                    y1 = ty1
-                    y2 = ty2
-                else:
-                    x1 = tx2
-                    x2 = tx1
-                    y1 = ty2
-                    y2 = ty1
+            for x1, y1, x2, y2 in line:
+                wk_line = MathLine(x1, y1, x2, y2)
 
-                theta, b = self.__get_segment(x1, y1, x2, y2)
-                if EXPECT_FRONT_LINE_M_MIN * math.pi <= theta <= EXPECT_FRONT_LINE_M_MAX * math.pi:
-                    front_lines = np.append(front_lines, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
+                if EXPECT_FRONT_LINE_M_MIN <= abs(wk_line.piangle) <= EXPECT_FRONT_LINE_M_MAX:
+                    front_lines.append(wk_line)
 
-                elif ((EXPECT_LEFT_LINE_M_MIN * math.pi <= theta <= EXPECT_LEFT_LINE_M_MAX * math.pi)
-                      and (x1 < (640. / 1280.) * self.img.shape[1])
-                      and (x2 < (640. / 1280.) * self.img.shape[1])):
+                elif (((EXPECT_LEFT_LINE_M_MIN <= wk_line.piangle <= EXPECT_LEFT_LINE_M_MAX)
+                       or (EXPECT_LEFT_LINE_M_MIN <= wk_line.piangle + 1 <= EXPECT_LEFT_LINE_M_MAX))
+                      and (wk_line.x1 < (640. / 1280.) * self.img.shape[1])
+                      and (wk_line.x2 < (640. / 1280.) * self.img.shape[1])):
                     # left curve
-                    left_lines = np.append(left_lines, np.array([[x1, y1, x2, y2, theta, b]]), axis=0)
+                    left_lines.append(wk_line)
 
-        # print 'front lines num:', front_lines.size
-        # print front_lines
-        # print 'left lines num:', left_lines.size
-        # print left_lines
-
-        if (front_lines.size == 0) and (left_lines.size == 0):
+        if (front_lines.get_num() == 0) and (left_lines.get_num() == 0):
             return None
 
         extrapolation_lines = []
 
-        if (front_lines.size > 0):
+        if (front_lines.get_num() > 0):
+            y_min, x_min = front_lines.get_y_min()
+            y_max, x_max = front_lines.get_y_max()
+            extrapolation_lines.append([x_min, y_min, x_max, y_max])
 
-            front_theta = front_lines[:, 4].mean(axis=0)
-            front_b = front_lines[:, 5].mean(axis=0)
-
-            y_min_index = front_lines[:, 1].argmin(axis=0)
-            y_max_index = front_lines[:, 3].argmax(axis=0)
-            front_y_min = front_lines[y_min_index, 1]
-            front_y_max = front_lines[y_max_index, 3]
-            front_x_min = front_lines[y_min_index, 0]
-            front_x_max = front_lines[y_max_index, 2]
-
-            front_x_min = int(front_x_min)
-            front_x_max = int(front_x_max)
-            front_y_min = int(front_y_min)
-            front_y_max = int(front_y_max)
-
-            extrapolation_lines.append([front_x_min, front_y_min, front_x_max, front_y_max])
-
-        if (left_lines.size > 0):
-
-            left_theta = left_lines[:, 4].mean(axis=0)
-            left_b = left_lines[:, 5].mean(axis=0)
-
-            left_x_min = left_lines[:, 0].min(axis=0)
-            left_x_max = left_lines[:, 2].max(axis=0)
-            left_y_min = left_lines[:, 1].min(axis=0)
-            left_y_max = left_lines[:, 3].max(axis=0)
-
-            left_x_min = int(left_x_min)
-            left_x_max = int(left_x_max)
-            left_y_min = int(left_y_min)
-            left_y_max = int(left_y_max)
-
-            extrapolation_lines.append([left_x_min, left_y_min, left_x_max, left_y_max])
+        if (left_lines.get_num() > 0):
+            y_min, x_min = left_lines.get_y_min()
+            y_max, x_max = left_lines.get_y_max()
+            extrapolation_lines.append([x_min, y_min, x_max, y_max])
 
         return extrapolation_lines
 
