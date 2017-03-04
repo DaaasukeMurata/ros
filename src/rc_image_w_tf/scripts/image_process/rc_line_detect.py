@@ -25,24 +25,14 @@ class RcLineDetect():
 
     def __init__(self):
         self.__thin_cnt = 0
+        self.last_image_msg = None
         self.__cv_bridge = CvBridge()
         image_node = rospy.get_param("~image", "/usb_cam_node/image_raw")
         self.__sub = rospy.Subscriber(image_node, Image, self.callback, queue_size=1)
         self.__pub = rospy.Publisher('image_processed', Image, queue_size=1)
         ParamServer.add_cb_value_changed(self.redraw)
 
-    def redraw(self):
-        self.callback(self.last_image_msg)
-
-    def callback(self, image_msg):
-        self.last_image_msg = image_msg
-
-        self.__thin_cnt += 1
-        if self.__thin_cnt < ParamServer.get_value('system.thinning'):
-            return
-        else:
-            self.__thin_cnt = 0
-
+    def image_process(self, image_msg):
         cv_image = self.__cv_bridge.imgmsg_to_cv2(image_msg, 'bgr8')
 
         pre_img = image_process.ProcessingImage(cv_image)
@@ -88,6 +78,21 @@ class RcLineDetect():
                 dummy_array = np.zeros((60, 160, 1), np.uint8)
                 out_bin = np.dstack((pro_array, line_array, dummy_array))
                 self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(out_bin, 'bgr8'))
+
+    def redraw(self):
+        if self.last_image_msg is not None:
+            self.image_process(self.last_image_msg)
+
+    def callback(self, image_msg):
+        self.last_image_msg = image_msg
+
+        # 処理性能で調整する間引き
+        self.__thin_cnt += 1
+        if self.__thin_cnt < ParamServer.get_value('system.thinning'):
+            return
+        else:
+            self.__thin_cnt = 0
+        self.image_process(image_msg)
 
     def main(self):
         rospy.spin()
