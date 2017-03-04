@@ -16,6 +16,9 @@ from model import CNNModel
 
 # define
 CKPT_PATH = os.path.abspath(os.path.dirname(__file__)) + '/ckpt/'
+IMG_HEIGHT = 60
+IMG_WIDTH = 160
+IMG_DIM = 2
 
 
 class RcImageSteer():
@@ -38,8 +41,12 @@ class RcImageSteer():
         self._sub = rospy.Subscriber('image_processed', Image, self.callback, queue_size=1)
 
     def callback(self, image_msg):
-        cv_image = self._cv_bridge.imgmsg_to_cv2(image_msg, "mono8")
-        x = np.reshape(cv_image, (1, 60, 160, 1))
+        cv_image = self._cv_bridge.imgmsg_to_cv2(image_msg, "bgr8")
+
+        # [height, width, depth]の形にして、dim3を削除
+        dim1, dim2, dim3 = np.dsplit(cv_image, 3)
+        image_array = np.dstack((dim1, dim2))
+        x = np.reshape(image_array, (1, IMG_HEIGHT, IMG_WIDTH, IMG_DIM))
 
         p = self.cnn.sess.run(self.cnn.predictions,
                               feed_dict={self.cnn.input_holder: x,
