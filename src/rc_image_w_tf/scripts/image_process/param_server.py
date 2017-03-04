@@ -30,6 +30,7 @@ class ParamServer():
     # [value, 下限, 上限]
     __params = OrderedDict()
     __params['system.pre_resize'] = LinearParam(value=2, lower=1, upper=10)
+    __params['system.thinning'] = LinearParam(value=1, lower=1, upper=10)
     __params['system.color_filter'] = BoolParam(value=0)
     __params['system.to_gray'] = BoolParam(value=1)
     __params['system.blur'] = BoolParam(value=1)

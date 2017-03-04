@@ -24,6 +24,7 @@ from param_server import ParamServer
 class RcLineDetect():
 
     def __init__(self):
+        self.__thin_cnt = 0
         self.__cv_bridge = CvBridge()
         image_node = rospy.get_param("~image", "/usb_cam_node/image_raw")
         self.__sub = rospy.Subscriber(image_node, Image, self.callback, queue_size=1)
@@ -35,6 +36,13 @@ class RcLineDetect():
 
     def callback(self, image_msg):
         self.last_image_msg = image_msg
+
+        self.__thin_cnt += 1
+        if self.__thin_cnt < ParamServer.get_value('system.thinning'):
+            return
+        else:
+            self.__thin_cnt = 0
+
         cv_image = self.__cv_bridge.imgmsg_to_cv2(image_msg, 'bgr8')
 
         pre_img = image_process.ProcessingImage(cv_image)
@@ -88,6 +96,9 @@ if __name__ == '__main__':
     rospy.init_node('rc_line_detect')
     gui_mode = rospy.get_param("~gui", True)
     out_dim = rospy.get_param("~dim", 2)
+
+    thinning = rospy.get_param("~thinning", 1)
+    ParamServer.set_value('system.thinning', thinning)
 
     if out_dim == 1:
         ParamServer.set_value('system.to_gray', 0)
