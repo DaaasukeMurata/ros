@@ -171,7 +171,7 @@ class ProcessingImage():
     def __extrapolation_lines(self, lines):
 
         if lines is None:
-            return None
+            return None, None
 
         # 検出する線の傾き範囲
         EXPECT_FRONT_LINE_M_MIN = ParamServer.get_value('extrapolation_lines.front_m_min')
@@ -181,6 +181,10 @@ class ProcessingImage():
 
         front_lines = MathLines()
         left_lines = MathLines()
+
+        # for return
+        front_line = None
+        left_line = None
 
         for line in lines:
             for x1, y1, x2, y2 in line:
@@ -196,24 +200,19 @@ class ProcessingImage():
                     # left curve
                     left_lines.append(wk_line)
 
-        if (front_lines.get_num() == 0) and (left_lines.get_num() == 0):
-            return None
-
-        extrapolation_lines = []
-
         if (front_lines.get_num() > 0):
             y_min, x_min = front_lines.get_y_min()
             y_max, _x = front_lines.get_y_max()
             th = (50. / 480.) * self.img.shape[0]  # self.img.shape[0]が画像の縦
             x_max = front_lines.get_rough_x(y_max, threshold=th)
-            extrapolation_lines.append([x_min, y_min, x_max, y_max])
+            front_line = MathLine(x_min, y_min, x_max, y_max)
 
         if (left_lines.get_num() > 0):
             y_min, x_min = left_lines.get_y_min()
             y_max, x_max = left_lines.get_y_max()
-            extrapolation_lines.append([x_min, y_min, x_max, y_max])
+            left_line = MathLine(x_min, y_min, x_max, y_max)
 
-        return extrapolation_lines
+        return front_line, left_line
 
     def preprocess(self):
         if ParamServer.get_value('system.color_filter'):
@@ -238,44 +237,31 @@ class ProcessingImage():
 
         # line detect
         pre_lines = self.__houghline()
-        final_lines = self.__extrapolation_lines(pre_lines)
+        f_line, l_line = self.__extrapolation_lines(pre_lines)
 
-        if bin_out:
-            # create image
-            if len(self.img.shape) == 3:
-                line_img = np.zeros((self.img.shape), np.uint8)
-            else:
-                line_img = np.zeros((self.img.shape[0], self.img.shape[1], 3), np.uint8)
-
-            # draw final_lines
-            if (final_lines is None):
-                self.img = line_img
-                return
-            for x1, y1, x2, y2 in final_lines:
-                cv2.line(line_img, (x1, y1), (x2, y2), [255, 255, 255], thickness_final)
-            self.img = line_img
-
+        # create image
+        if len(self.img.shape) == 3:
+            line_img = np.zeros((self.img.shape), np.uint8)
         else:
-            # create image
-            if len(self.img.shape) == 3:
-                line_img = np.zeros((self.img.shape), np.uint8)
-            else:
-                line_img = np.zeros((self.img.shape[0], self.img.shape[1], 3), np.uint8)
+            line_img = np.zeros((self.img.shape[0], self.img.shape[1], 3), np.uint8)
 
+        if not bin_out:
             # draw pre_lines
-            if (pre_lines is None):
-                self.img = line_img
-                return
-            for x1, y1, x2, y2 in pre_lines[0]:
-                cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness_pre)
+            if (pre_lines is not None):
+                for x1, y1, x2, y2 in pre_lines[0]:
+                    cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness_pre)
 
-            # draw final_lines
-            if (final_lines is None):
-                self.img = line_img
-                return
-            for x1, y1, x2, y2 in final_lines:
-                cv2.line(line_img, (x1, y1), (x2, y2), color_final, thickness_final)
-            self.img = line_img
+        # draw final_lines
+        if bin_out:
+            color_final = [255, 255, 255]
+
+        if f_line is not None:
+            cv2.line(line_img, (f_line.x1, f_line.y1), (f_line.x2, f_line.y2), color_final, thickness_final)
+        if l_line is not None:
+            cv2.line(line_img, (l_line.x1, l_line.y1), (l_line.x2, l_line.y2), color_final, thickness_final)
+
+        self.img = line_img
+        return f_line, l_line
 
     def overlay(self, img):
         ALPHA = 1.0

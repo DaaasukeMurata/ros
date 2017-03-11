@@ -6,6 +6,7 @@
 
 
 import sys
+import math
 import copy
 import rospy
 import numpy as np
@@ -70,13 +71,28 @@ class RcLineDetect():
             elif out_dim == 2:
                 # line detect
                 line_img = copy.deepcopy(pre_img)
-                line_img.detect_line(bin_out=True, thickness_final=16)
+                f_line, l_line = line_img.detect_line(bin_out=True, thickness_final=16)
+
+                # set line info to info_array
+                info_array = np.zeros((60, 160, 1), np.uint8)
+
+                if f_line is not None:
+                    info_array[0, 0, 0] = f_line.x1 * (255. / line_img.img.shape[1])
+                    info_array[0, 1, 0] = f_line.y1 * (255. / line_img.img.shape[0])
+                    info_array[0, 2, 0] = f_line.x2 * (255. / line_img.img.shape[1])
+                    info_array[0, 3, 0] = f_line.y2 * (255. / line_img.img.shape[0])
+                if l_line is not None:
+                    info_array[1, 0, 0] = l_line.x1 * (255. / line_img.img.shape[1])
+                    info_array[1, 1, 0] = l_line.y1 * (255. / line_img.img.shape[0])
+                    info_array[1, 2, 0] = l_line.x2 * (255. / line_img.img.shape[1])
+                    info_array[1, 3, 0] = l_line.y2 * (255. / line_img.img.shape[0])
+
+                # format for output
                 line_img.resize(final_scale)
                 line_array = np.reshape(line_img.get_grayimg(), (60, 160, 1))
 
                 # output
-                dummy_array = np.zeros((60, 160, 1), np.uint8)
-                out_bin = np.dstack((pro_array, line_array, dummy_array))
+                out_bin = np.dstack((pro_array, line_array, info_array))
                 self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(out_bin, 'bgr8'))
 
     def redraw(self):
