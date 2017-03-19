@@ -42,6 +42,7 @@ class RcImageSteer():
         else:
             self._pub = rospy.Publisher('servo', UInt16MultiArray, queue_size=1)
         self._sub = rospy.Subscriber('image_processed', Image, self.callback, queue_size=1)
+        print 'RcImageSteer init done.'
 
     def steer_by_image(self, image):
         x = np.reshape(image, (1, IMG_HEIGHT, IMG_WIDTH, IMG_DIM))
@@ -49,21 +50,22 @@ class RcImageSteer():
                               feed_dict={self.cnn.input_holder: x,
                                          self.cnn.keepprob_holder: 1.0})
         answer = np.argmax(p, 1)
+        # print answer[0], p[0, answer[0]]
         return answer[0]
 
     def steer_by_line(self, x1, y1, x2, y2):
         # y2 > y1前提、視覚的にわかりやすいよう上下反転
         angle = 1 + math.atan2(y1 - y2, x1 - x2) / math.pi
         dif = (0.5 - angle) * 10 * self.adj_steer
+        # 線を乗り越えるとき、反転
         if ((x1 + x2 < 255) and (angle < 0.5)) or ((x1 + x2 > 255) and (angle > 0.5)):
             dif = dif * -1
-
         steer = 90 + dif
         if steer < 30:
             steer = 30
         elif steer > 150:
             steer = 150
-        print angle, steer
+        # print angle, steer
         return steer
 
     def callback(self, image_msg):
