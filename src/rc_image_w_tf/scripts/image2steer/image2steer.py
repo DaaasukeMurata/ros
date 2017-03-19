@@ -52,9 +52,19 @@ class RcImageSteer():
         return answer[0]
 
     def steer_by_line(self, x1, y1, x2, y2):
-        angle = math.atan2(y2 - y1, x2 - x1) / math.pi      # y2 > y1前提
-        dif = (angle - 0.5) * 10 * self.adj_steer
-        return 90 + dif
+        # y2 > y1前提、視覚的にわかりやすいよう上下反転
+        angle = 1 + math.atan2(y1 - y2, x1 - x2) / math.pi
+        dif = (0.5 - angle) * 10 * self.adj_steer
+        if ((x1 + x2 < 255) and (angle < 0.5)) or ((x1 + x2 > 255) and (angle > 0.5)):
+            dif = dif * -1
+
+        steer = 90 + dif
+        if steer < 30:
+            steer = 30
+        elif steer > 150:
+            steer = 150
+        print angle, steer
+        return steer
 
     def callback(self, image_msg):
         cv_image = self._cv_bridge.imgmsg_to_cv2(image_msg, "bgr8")
