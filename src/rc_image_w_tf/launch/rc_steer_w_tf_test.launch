@@ -9,8 +9,8 @@
     </node>
 
     <node machine="host" pkg="rc_image_w_tf" type="image2steer.py" name="image2steer" output="screen">
-        <param name="model_name" value="model_normal_w_line" type="String"/>
-	    <param name="use_line_trace" value="true" type="bool"/>
+        <param name="model_name" value="model_v3_normal_w_line_linemeta" type="String"/>
+	    <param name="use_line_trace" value="false" type="bool"/>
         <param name="line_adjust_steer" value="50" type="int"/>
 	    <param name="testmode" value="true" type="bool"/>
     </node>
