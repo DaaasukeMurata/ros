@@ -62,15 +62,26 @@ class RcImageSteer():
         self._sub = rospy.Subscriber('image_processed', Image, self.callback, queue_size=1)
         print 'RcImageSteer init done.'
 
+    # # for model ver3
+    # def steer_by_model(self, image, f_line, l_line):
+    #     img = image
+    #     line = np.array([f_line.x1, f_line.y1, f_line.x2, f_line.y2, f_line.piangle,
+    #                      l_line.x1, l_line.y1, l_line.x2, l_line.y2, l_line.piangle])
+    #     line = line.reshape([1, 10])
+
+    #     p = self.cnn.sess.run(self.cnn.predictions,
+    #                           feed_dict={self.cnn.image_holder: img,
+    #                                      self.cnn.line_meta_holder: line,
+    #                                      self.cnn.keepprob_holder: 1.0})
+    #     answer = np.argmax(p, 1)
+    #     # print answer[0], p[0, answer[0]]
+    #     return answer[0]
+
+    # for model ver2
     def steer_by_model(self, image, f_line, l_line):
         img = image
-        line = np.array([f_line.x1, f_line.y1, f_line.x2, f_line.y2, f_line.piangle,
-                         l_line.x1, l_line.y1, l_line.x2, l_line.y2, l_line.piangle])
-        line = line.reshape([1, 10])
-
         p = self.cnn.sess.run(self.cnn.predictions,
-                              feed_dict={self.cnn.image_holder: img,
-                                         self.cnn.line_meta_holder: line,
+                              feed_dict={self.cnn.input_holder: img,
                                          self.cnn.keepprob_holder: 1.0})
         answer = np.argmax(p, 1)
         # print answer[0], p[0, answer[0]]
