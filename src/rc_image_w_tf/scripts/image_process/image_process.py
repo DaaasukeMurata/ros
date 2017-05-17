@@ -247,7 +247,7 @@ class ProcessingImage():
 
         if not bin_out:
             # draw pre_lines
-            if (pre_lines is not None):
+            if pre_lines is not None:
                 for x1, y1, x2, y2 in pre_lines[0]:
                     cv2.line(line_img, (x1, y1), (x2, y2), color_pre, thickness_pre)
 
