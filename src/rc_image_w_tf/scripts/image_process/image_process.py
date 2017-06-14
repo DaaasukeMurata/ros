@@ -95,9 +95,6 @@ class ProcessingImage():
         if len(self.img.shape) < 3:     # iplimage.shape is [x,y,colorchannel]
             self.img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2BGR)
 
-    def resize(self, scale_size):
-        self.img = cv2.resize(self.img, None, fx=scale_size, fy=scale_size)
-
     def __threshold(self):
         self.img = cv2.adaptiveThreshold(self.img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 5)
 
@@ -213,6 +210,9 @@ class ProcessingImage():
             left_line = MathLine(x_min, y_min, x_max, y_max)
 
         return front_line, left_line
+
+    def resize(self, scale_size):
+        self.img = cv2.resize(self.img, None, fx=scale_size, fy=scale_size)
 
     def preprocess(self):
         if ParamServer.get_value('system.color_filter'):
