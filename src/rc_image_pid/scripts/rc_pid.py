@@ -8,18 +8,30 @@ import numpy as np
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+from std_msgs.msg import UInt16MultiArray
 
 
-class RcPid():
+class RcPid(object):
 
     def __init__(self):
         self.__cv_bridge = CvBridge()
         image_node = rospy.get_param("~image", "/usb_cam_node/image_raw")
-        self.__sub = rospy.Subscriber(image_node, Image, self.callback, queue_size=1)
-        self.__pub = rospy.Publisher('image_pid', Image, queue_size=1)
+        self.__img_sub = rospy.Subscriber(image_node, Image, self.callback, queue_size=1)
+        self.__img_pub = rospy.Publisher('image_pid', Image, queue_size=1)
+        self.__steer_pub = rospy.Publisher('servo', UInt16MultiArray, queue_size=1)
+
+        # for pid
         self.before_val = 0.0
         self.now_val = 0.0
         self.integral = 0.0
+        self.integral_time = 0.033
+        self.DELTA_T = 0.033
+        self.KP = rospy.get_param("~KP", 1.66)
+        self.KI = self.KP / self.integral_time
+        self.KD = self.KP * self.DELTA_T
+
+        # for RC control
+        self.speed = rospy.get_param("~speed", 84)
 
     def callback(self, image_msg):
         cv_img = self.__cv_bridge.imgmsg_to_cv2(image_msg, 'bgr8')
@@ -27,11 +39,15 @@ class RcPid():
         line_pos = self.line_detect(cv_img)
 
         if not math.isnan(line_pos):
-            steer = self.steer_pid(line_pos, 0.5)
-            print steer
+            steer = self.steer_pid(line_pos * 180, 90)
+            rc_cntr = UInt16MultiArray()
+            rc_cntr.data = [steer, self.speed]
+            self.__steer_pub.publish(rc_cntr)
+            rospy.loginfo("line_pos=%4.1f  steer=%4.1f", line_pos, steer)
 
-    # 0.5をcenterとして、0.0 - 1.0の間の値を返す
+    # 0.5をcenterとして、0.0 〜 1.0の間の値を返す
     def line_detect(self, cv_img):
+        DEBUG_SCREENOUT = True
         WIDTH = 480
 
         # トリミング
@@ -58,33 +74,29 @@ class RcPid():
             sum_array = cv_img.sum(axis=0)
             pos = np.sum(sum_array * range(WIDTH)) / np.sum(sum_array) / WIDTH
 
-        # 中心線描画
-        cv_img = cv2.cvtColor(cv_img, cv2.COLOR_GRAY2BGR)
-        if not math.isnan(pos):  # NaN check
-            cv2.line(cv_img, (int(pos * WIDTH), 0), (int(pos * WIDTH), 30), [0, 0, 255], 10)
+        if DEBUG_SCREENOUT:
+            # 中心線描画
+            cv_img = cv2.cvtColor(cv_img, cv2.COLOR_GRAY2BGR)
+            if not math.isnan(pos):  # NaN check
+                cv2.line(cv_img, (int(pos * WIDTH), 0), (int(pos * WIDTH), 30), [0, 0, 255], 10)
 
-        # self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(cv_img, 'mono8'))
-        self.__pub.publish(self.__cv_bridge.cv2_to_imgmsg(cv_img, 'bgr8'))
+            # self.__img_pub.publish(self.__cv_bridge.cv2_to_imgmsg(cv_img, 'mono8'))
+            self.__img_pub.publish(self.__cv_bridge.cv2_to_imgmsg(cv_img, 'bgr8'))
 
         return pos
 
     def steer_pid(self, val, target):
-        DELTA_T = 0.033
-        KP = 0.3
-        KI = KP / DELTA_T
-        KD = KP * DELTA_T
-
         self.before_val = self.now_val
         self.now_val = target - val
 
-        self.integral += (self.before_val + self.now_val) / 2.0 * DELTA_T
+        self.integral += (self.before_val + self.now_val) / 2.0 * self.DELTA_T
+        self.integral_time += self.DELTA_T
 
-        p = KP * self.now_val
-        i = KI * self.integral
-        d = KD * (self.now_val - self.before_val) / DELTA_T
+        p = self.KP * self.now_val
+        i = self.KI * self.integral
+        d = self.KD * (self.now_val - self.before_val) / self.DELTA_T
 
-        # return max(min(150, p + i + d), 30)
-        return p + i + d
+        return max(min(180, p + i + d), 0)
 
     def main(self):
         rospy.spin()
