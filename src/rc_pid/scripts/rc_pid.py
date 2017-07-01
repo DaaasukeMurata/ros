@@ -40,10 +40,11 @@ class RcPid(object):
 
         if not math.isnan(line_pos):
             steer = self.steer_pid(line_pos * 180, 90)
+            steer = 180 - steer
             rc_cntr = UInt16MultiArray()
             rc_cntr.data = [steer, self.speed]
             self.__steer_pub.publish(rc_cntr)
-            rospy.loginfo("line_pos=%4.1f  steer=%4.1f", line_pos, steer)
+            rospy.loginfo("line_pos=%4.2f  steer=%d", line_pos, steer)
 
     # 0.5をcenterとして、0.0 〜 1.0の間の値を返す
     def line_detect(self, cv_img):
@@ -95,6 +96,8 @@ class RcPid(object):
         p = self.KP * self.now_val
         i = self.KI * self.integral
         d = self.KD * (self.now_val - self.before_val) / self.DELTA_T
+
+        rospy.loginfo("p=%4.1f   i=%4.1f   d=%4.1f", p, i, d)
 
         return max(min(180, p + i + d), 0)
 

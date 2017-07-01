@@ -12,7 +12,7 @@
     </node>-->
 
     <node machine="host" pkg="rc_image_pid" type="rc_pid.py" name="rc_pid" output="screen">
-	    <param name="kp" value="1.0" type="double"/>
+	    <param name="kp" value="0.1" type="double"/>
 	    <param name="speed" value="84" type="int"/>
     </node>
         

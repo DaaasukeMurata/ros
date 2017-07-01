@@ -28,7 +28,7 @@ class RcLineDetect():
         self.__thin_cnt = 0
         self.last_image_msg = None
         self.__cv_bridge = CvBridge()
-        image_node = rospy.get_param("~image", "/usb_cam_node/image_raw")
+        image_node = rospy.get_param("~image", "/usb_cam/image_raw")
         self.__sub = rospy.Subscriber(image_node, Image, self.callback, queue_size=1)
         self.__pub = rospy.Publisher('image_processed', Image, queue_size=1)
         ParamServer.add_cb_value_changed(self.redraw)
