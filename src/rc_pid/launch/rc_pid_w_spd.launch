@@ -11,9 +11,10 @@
       <param name="pixel_format" value="mjpeg"/>
     </node>
 
-    <node machine="host" pkg="rc_pid" type="rc_pid.py" name="rc_pid">
+    <node machine="host" pkg="rc_pid" type="rc_pid_w_spd.py" name="rc_pid">
 	    <param name="KP" value="1" type="double"/>
-	    <param name="speed" value="82" type="int"/>
+	    <param name="speed_hi" value="78" type="int"/>
+	    <param name="speed_low" value="82" type="int"/>
     </node>
         
 </launch>

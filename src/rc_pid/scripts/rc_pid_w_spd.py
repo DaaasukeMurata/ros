@@ -27,7 +27,9 @@ class RcPid(object):
         self.integral_time = 0.033
 
         # for RC control
-        self.speed = rospy.get_param("~speed", 82)
+        self.steer = 90
+        self.spd_hi = rospy.get_param("~speed_hi", 75)
+        self.spd_lo = rospy.get_param("~speed_low", 83)
 
     def callback(self, image_msg):
         cv_img = self.__cv_bridge.imgmsg_to_cv2(image_msg, 'bgr8')
@@ -35,11 +37,15 @@ class RcPid(object):
         line_pos = self.line_detect(cv_img)
 
         if not math.isnan(line_pos):
-            steer = 90 - self.steer_pid(line_pos * 180, 90)
-            rc_cntr = UInt16MultiArray()
-            rc_cntr.data = [steer, self.speed]
-            self.__steer_pub.publish(rc_cntr)
-            rospy.loginfo("line_pos=%4.2f  steer=%d", line_pos, steer)
+            speed = self.spd_hi
+            self.steer = 90 - self.steer_pid(line_pos * 180, 90)
+            rospy.loginfo("line_pos=%4.2f  steer=%d", line_pos, self.steer)
+        else:
+            speed = self.spd_lo
+
+        rc_cntr = UInt16MultiArray()
+        rc_cntr.data = [self.steer, speed]
+        self.__steer_pub.publish(rc_cntr)
 
     # 0.5をcenterとして、0.0 〜 1.0の間の値を返す
     def line_detect(self, cv_img):
